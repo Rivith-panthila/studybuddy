@@ -103,3 +103,31 @@ export const updateSubject = async (
   }
 };
 
+// Delete Subject
+export const deleteSubject = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const subject = await Subject.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user!.id,
+    });
+
+    if (!subject) {
+      res.status(404).json({
+        message: "Subject not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Subject deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete subject error:", error);
+    res.status(500).json({
+      message: "Failed to delete subject",
+    });
+  }
+};
