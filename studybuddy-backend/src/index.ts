@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import dns from "node:dns";
 import authRoutes from "./routes/authRoutes";
+import subjectRoutes from "./routes/subjectRoutes";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/subjects", subjectRoutes);
 
 
 app.get("/", (_req, res) => {
