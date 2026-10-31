@@ -75,3 +75,85 @@ export const getAssignments = async (
     });
   }
 };
+
+// Update Assignment
+export const updateAssignment = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { title, dueDate, status } = req.body;
+
+    if (
+      title === undefined &&
+      dueDate === undefined &&
+      status === undefined
+    ) {
+      res.status(400).json({
+        message: "Please provide details to update",
+      });
+      return;
+    }
+
+    if (title !== undefined && (
+      typeof title !== "string" || !title.trim()
+    )) {
+      res.status(400).json({ message: "Invalid title" });
+      return;
+    }
+
+    if (
+      status !== undefined &&
+      !["Pending", "Completed"].includes(status)
+    ) {
+      res.status(400).json({ message: "Invalid status" });
+      return;
+    }
+
+    const updates: {
+      title?: string;
+      dueDate?: Date;
+      status?: "Pending" | "Completed";
+    } = {};
+
+    if (title !== undefined) updates.title = title.trim();
+
+    if (dueDate !== undefined) {
+      const parsedDate = new Date(dueDate);
+
+      if (isNaN(parsedDate.getTime())) {
+        res.status(400).json({ message: "Invalid due date" });
+        return;
+      }
+
+      updates.dueDate = parsedDate;
+    }
+
+    if (status !== undefined) {
+      updates.status = status;
+    }
+
+    const assignment = await Assignment.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.user!.id,
+      },
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!assignment) {
+      res.status(404).json({ message: "Assignment not found" });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Assignment updated successfully",
+      assignment,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update assignment",
+    });
+  }
+};
