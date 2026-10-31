@@ -54,3 +54,24 @@ export const createAssignment = async (
     res.status(500).json({ message: "Failed to create assignment" });
   }
 };
+
+// Get All Assignments
+export const getAssignments = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const assignments = await Assignment.find({
+      userId: req.user!.id,
+    }).populate("subjectId", "name");
+
+    res.status(200).json({
+      message: "Assignments retrieved successfully",
+      assignments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to retrieve assignments",
+    });
+  }
+};
