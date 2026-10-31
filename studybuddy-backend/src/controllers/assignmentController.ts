@@ -157,3 +157,32 @@ export const updateAssignment = async (
     });
   }
 };
+
+
+// Delete Assignment
+export const deleteAssignment = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const assignment = await Assignment.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user!.id,
+    });
+
+    if (!assignment) {
+      res.status(404).json({
+        message: "Assignment not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Assignment deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete assignment",
+    });
+  }
+};
