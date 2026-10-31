@@ -28,9 +28,15 @@ export const protect = (
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
-    ) as { id: string };
+    ) as { sub: string; type: string };
 
-    req.user = { id: decoded.id };
+    if (decoded.type !== "access") {
+  res.status(401).json({
+    message: "Invalid access token",
+  });
+  return;
+}
+    req.user = { id: decoded.sub };
 
     next();
   } catch (error) {

@@ -8,24 +8,16 @@ const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export const signAccessToken = (userId: string) => {
   return jwt.sign(
-    {
-      sub: userId,
-    },
+    { sub: userId, type: "access" },
     JWT_SECRET,
-    {
-      expiresIn: "30m",
-    }
+    { expiresIn: "30m" }
   );
 };
 
 export const signRefreshToken = (userId: string) => {
   return jwt.sign(
-    {
-      sub: userId,
-    },
+    { sub: userId, type: "refresh" },
     JWT_SECRET,
-    {
-      expiresIn: "7d",
-    }
+    { expiresIn: "7d" }
   );
 };

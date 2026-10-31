@@ -1,4 +1,4 @@
-// import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User";
@@ -151,4 +151,46 @@ const refreshToken = signRefreshToken(user._id.toString());
     });
   }
 };
+
+
+
+export const refreshAccessToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      res.status(401).json({
+        message: "Refresh token is required",
+      });
+      return;
+    }
+
+   const decoded = jwt.verify(
+  refreshToken,
+  process.env.JWT_SECRET as string
+) as { sub: string; type: string };
+
+ if (decoded.type !== "refresh") {
+  res.status(401).json({
+    message: "Invalid refresh token",
+  });
+  return;
+}
+
+    const newAccessToken = signAccessToken(decoded.sub);
+
+    res.status(200).json({
+      message: "Access token refreshed successfully",
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    res.status(401).json({
+      message: "Invalid or expired refresh token",
+    });
+  }
+};
+
 
