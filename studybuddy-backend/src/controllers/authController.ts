@@ -1,7 +1,11 @@
-import jwt from "jsonwebtoken";
+// import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User";
+import {
+  signAccessToken,
+  signRefreshToken,
+} from "../util/jwt";
 
 export const registerUser = async (
   req: Request,
@@ -121,21 +125,25 @@ export const loginUser = async (
       return;
     }
 
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "1d" }
-    );
+    // const token = jwt.sign(
+    //   { id: user._id },
+    //   process.env.JWT_SECRET as string,
+    //   { expiresIn: "1d" }
+    // );
+
+    const accessToken = signAccessToken(user._id.toString());
+const refreshToken = signRefreshToken(user._id.toString());
 
     res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
+  message: "Login successful",
+  accessToken,
+  refreshToken,
+  user: {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+  },
+});
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
