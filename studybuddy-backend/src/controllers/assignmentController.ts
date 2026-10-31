@@ -186,3 +186,50 @@ export const deleteAssignment = async (
     });
   }
 };
+
+export const getCalendarAssignments = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      res.status(400).json({
+        message: "Start date and end date are required",
+      });
+      return;
+    }
+
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+
+    if (
+      isNaN(start.getTime()) ||
+      isNaN(end.getTime()) ||
+      start > end
+    ) {
+      res.status(400).json({
+        message: "Invalid date range",
+      });
+      return;
+    }
+
+    const assignments = await Assignment.find({
+      userId: req.user!.id,
+      dueDate: {
+        $gte: start,
+        $lte: end,
+      },
+    }).populate("subjectId", "name");
+
+    res.status(200).json({
+      message: "Calendar assignments retrieved successfully",
+      assignments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to retrieve calendar assignments",
+    });
+  }
+};
