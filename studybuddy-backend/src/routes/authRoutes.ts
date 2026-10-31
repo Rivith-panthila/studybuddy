@@ -1,6 +1,6 @@
 
 import express from "express";
-import { registerUser, loginUser } from "../controllers/authController";
+import { registerUser, loginUser,refreshAccessToken } from "../controllers/authController";
 import { protect } from "../middleware/authMiddleware";
 import User from "../models/User";
 
@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/refresh", refreshAccessToken);
 
 router.get("/profile", protect, async (req, res) => {
   try {
