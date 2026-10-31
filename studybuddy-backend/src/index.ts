@@ -7,6 +7,7 @@ import dns from "node:dns";
 import authRoutes from "./routes/authRoutes";
 import subjectRoutes from "./routes/subjectRoutes";
 import assignmentRoutes from "./routes/assignmentRoutes";
+import dashboardRoutes from "./routes/dashboardRoutes";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 
 app.get("/", (_req, res) => {
