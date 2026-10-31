@@ -15,7 +15,8 @@ const router = express.Router();
 router.post("/", protect, createAssignment);
 router.get("/", protect, getAssignments);
 router.put("/:id", protect, updateAssignment);
-router.delete("/:id", protect, deleteAssignment);
 router.get("/calendar", protect, getCalendarAssignments);
+router.delete("/:id", protect, deleteAssignment);
+
 
 export default router;
