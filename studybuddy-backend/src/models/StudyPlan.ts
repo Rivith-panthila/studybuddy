@@ -3,15 +3,16 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IStudyPlan extends Document {
   userId: mongoose.Types.ObjectId;
   courseworkId: mongoose.Types.ObjectId;
-  dailySchedule: {
-    date: Date;
-    tasks: {
-      title: string;
-      description: string;
-      duration: number;
-      status: "Pending" | "Completed";
-    }[];
+ dailySchedule: {
+  date: Date;
+  tasks: {
+    _id: mongoose.Types.ObjectId;
+    title: string;
+    description: string;
+    duration: number;
+    status: "Pending" | "Completed";
   }[];
+}[];
 }
 
 const studyPlanSchema = new Schema<IStudyPlan>(
