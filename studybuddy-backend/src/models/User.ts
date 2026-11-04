@@ -7,6 +7,8 @@ export interface IUser extends Document {
   password: string;
   bio?: string;
   profileImage?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
 }
 
 const userSchema = new Schema<IUser>(
@@ -38,6 +40,15 @@ profileImage: {
   type: String,
   default: "",
   trim: true,
+},
+
+  resetPasswordToken: {
+  type: String,
+  default: undefined,
+},
+resetPasswordExpires: {
+  type: Date,
+  default: undefined,
 },
   },
   {

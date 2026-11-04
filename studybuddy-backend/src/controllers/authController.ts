@@ -241,4 +241,77 @@ export const updateProfile = async (
   }
 };
 
+export const changePassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = (req as any).user.id;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({
+        message: "Please provide current and new passwords",
+      });
+      return;
+    }
+
+    if (
+      typeof currentPassword !== "string" ||
+      typeof newPassword !== "string"
+    ) {
+      res.status(400).json({
+        message: "Passwords must be text",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({
+        message: "New password must be at least 6 characters",
+      });
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      res.status(400).json({
+        message: "New password must be different",
+      });
+      return;
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      res.status(401).json({
+        message: "Current password is incorrect",
+      });
+      return;
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+
+    res.status(500).json({
+      message: "Failed to change password",
+    });
+  }
+};
+
 
