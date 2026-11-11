@@ -1,5 +1,5 @@
 import express from "express";
-import { createStudyPlan,getMyStudyPlans,updateStudyTaskStatus, rescheduleStudyTask, getTodayTasks, getStudyProgress,deleteStudyPlan,updateStudyTask, } from "../controllers/studyPlanController";
+import { createStudyPlan,getMyStudyPlans,updateStudyTaskStatus, rescheduleStudyTask, getTodayTasks, getStudyProgress,deleteStudyPlan,updateStudyTask, deleteStudyTask, } from "../controllers/studyPlanController";
 import { protect } from "../middleware/authMiddleware";
 
 const router = express.Router();
@@ -26,5 +26,11 @@ router.put(
   protect,
   
   updateStudyTask
+);
+
+router.delete(
+  "/:planId/tasks/:taskId",
+  protect,
+  deleteStudyTask
 );
 export default router;

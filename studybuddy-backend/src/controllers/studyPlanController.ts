@@ -551,3 +551,69 @@ export const updateStudyTask = async (
     });
   }
 };
+
+export const deleteStudyTask = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const planId = String(req.params.planId);
+    const taskId = String(req.params.taskId);
+
+    if (
+      !mongoose.Types.ObjectId.isValid(planId) ||
+      !mongoose.Types.ObjectId.isValid(taskId)
+    ) {
+      res.status(400).json({
+        message: "Invalid study plan ID or task ID",
+      });
+      return;
+    }
+
+    const plan = await StudyPlan.findOne({
+      _id: planId,
+      userId: req.user!.id,
+    });
+
+    if (!plan) {
+      res.status(404).json({
+        message: "Study plan not found",
+      });
+      return;
+    }
+
+    let taskFound = false;
+
+    for (const day of plan.dailySchedule) {
+      const taskIndex = day.tasks.findIndex(
+        (task) => task._id.toString() === taskId
+      );
+
+      if (taskIndex !== -1) {
+        day.tasks.splice(taskIndex, 1);
+        taskFound = true;
+        break;
+      }
+    }
+
+    if (!taskFound) {
+      res.status(404).json({
+        message: "Study task not found",
+      });
+      return;
+    }
+
+    await plan.save();
+
+    res.status(200).json({
+      message: "Study task deleted successfully",
+      studyPlan: plan,
+    });
+  } catch (error) {
+    console.error("Delete study task error:", error);
+
+    res.status(500).json({
+      message: "Failed to delete study task",
+    });
+  }
+};

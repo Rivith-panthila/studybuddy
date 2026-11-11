@@ -7,6 +7,9 @@ import {
   signRefreshToken,
 } from "../util/jwt";
 
+import crypto from "node:crypto";
+import sendEmail from "../config/email";
+
 export const registerUser = async (
   req: Request,
   res: Response
@@ -310,6 +313,132 @@ export const changePassword = async (
 
     res.status(500).json({
       message: "Failed to change password",
+    });
+  }
+};
+
+export const forgotPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== "string") {
+      res.status(400).json({
+        message: "Please provide your email address",
+      });
+      return;
+    }
+
+    const user = await User.findOne({
+      email: email.trim().toLowerCase(),
+    });
+
+    // Do not reveal whether an email is registered.
+    if (!user) {
+      res.status(200).json({
+        message: "If the email is registered, a reset link will be sent.",
+      });
+      return;
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    await user.save();
+
+    const resetLink =
+      `http://localhost:5173/reset-password?token=${resetToken}`;
+
+    await sendEmail(
+      user.email,
+      "StudyBuddy - Password Reset",
+      `
+        <h2>Password Reset Request</h2>
+        <p>We received a request to reset your StudyBuddy password.</p>
+        <p>This link expires in 15 minutes.</p>
+        <a href="${resetLink}">Reset My Password</a>
+        <p>If you did not request this, you can ignore this email.</p>
+      `
+    );
+
+    res.status(200).json({
+      message: "If the email is registered, a reset link will be sent.",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+
+    res.status(500).json({
+      message: "Unable to process password reset request",
+    });
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (
+      !token ||
+      typeof token !== "string" ||
+      !newPassword ||
+      typeof newPassword !== "string"
+    ) {
+      res.status(400).json({
+        message: "Please provide a valid token and new password",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+      return;
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      res.status(400).json({
+        message: "Reset link is invalid or expired",
+      });
+      return;
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+
+    res.status(500).json({
+      message: "Failed to reset password",
     });
   }
 };

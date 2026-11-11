@@ -1,6 +1,6 @@
 
 import express from "express";
-import { registerUser, loginUser,refreshAccessToken,updateProfile,changePassword, } from "../controllers/authController";
+import { registerUser, loginUser,refreshAccessToken,updateProfile,changePassword,forgotPassword,resetPassword, } from "../controllers/authController";
 import { protect } from "../middleware/authMiddleware";
 import User from "../models/User";
 
@@ -12,6 +12,8 @@ router.post("/login", loginUser);
 router.post("/refresh", refreshAccessToken);
 router.put("/profile", protect, updateProfile);
 router.patch("/change-password", protect, changePassword);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 router.get("/profile", protect, async (req, res) => {
   try {
