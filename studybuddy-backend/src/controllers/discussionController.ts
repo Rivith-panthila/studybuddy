@@ -5,6 +5,7 @@ import Discussion from "../models/Discussion";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getIO } from "../config/socket";
+import DiscussionReply from "../models/DiscussionReply";
 
 interface AuthRequest extends Request {
   user?: {
@@ -16,10 +17,11 @@ export const createDiscussion = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
+  const file = req.file;
+
   try {
     const { title, content } = req.body;
     const userId = req.user!.id;
-    const file = req.file;
 
     if (
       typeof title !== "string" ||
@@ -27,6 +29,10 @@ export const createDiscussion = async (
       typeof content !== "string" ||
       !content.trim()
     ) {
+      if (file) {
+        await fs.unlink(file.path).catch(() => {});
+      }
+
       res.status(400).json({
         message: "Please provide a valid title and content",
       });
@@ -47,7 +53,16 @@ export const createDiscussion = async (
       };
     }
 
-    const discussion = await Discussion.create(discussionData);
+    let discussion;
+
+    try {
+      discussion = await Discussion.create(discussionData);
+    } catch (error) {
+      if (file) {
+        await fs.unlink(file.path).catch(() => {});
+      }
+      throw error;
+    }
 
     const populatedDiscussion = await Discussion.findById(discussion._id)
       .populate("userId", "name profileImage");
@@ -196,6 +211,10 @@ export const deleteDiscussion = async (
       return;
     }
 
+    await DiscussionReply.deleteMany({
+      discussionId: discussion._id,
+    });
+
     if (discussion.attachment?.fileUrl) {
       const fileName = path.basename(discussion.attachment.fileUrl);
       const filePath = path.join(
@@ -221,7 +240,7 @@ export const deleteDiscussion = async (
     });
 
     res.status(200).json({
-      message: "Discussion deleted successfully",
+      message: "Discussion, replies and attachment deleted successfully",
     });
   } catch (error) {
     console.error("Delete discussion error:", error);

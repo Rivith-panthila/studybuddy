@@ -17,6 +17,7 @@ import studyPreferenceRoutes from "./routes/studyPreferenceRoutes";
 import studyPlanRoutes from "./routes/studyPlanRoutes";
 import discussionRoutes from "./routes/discussionRoutes";
 import discussionReplyRoutes from "./routes/discussionReplyRoutes";
+import Discussion from "./models/Discussion";
 import { initializeSocket } from "./config/socket";
 
 dotenv.config();
@@ -67,15 +68,27 @@ io.on("connection", (socket) => {
 
   console.log("Authenticated user connected:", userId);
 
-  socket.on("discussion:join", (discussionId: string) => {
-    if (
-      typeof discussionId !== "string" ||
-      !/^[0-9a-fA-F]{24}$/.test(discussionId)
-    ) {
-      return;
-    }
+  socket.on("discussion:join", async (discussionId: string) => {
+    try {
+      if (
+        typeof discussionId !== "string" ||
+        !/^[0-9a-fA-F]{24}$/.test(discussionId)
+      ) {
+        return;
+      }
 
-    socket.join(`discussion:${discussionId}`);
+      const discussionExists = await Discussion.exists({
+        _id: discussionId,
+      });
+
+      if (!discussionExists) {
+        return;
+      }
+
+      socket.join(`discussion:${discussionId}`);
+    } catch (error) {
+      console.error("Discussion room join error:", error);
+    }
   });
 
   socket.on("discussion:leave", (discussionId: string) => {

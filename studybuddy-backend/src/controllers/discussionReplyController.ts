@@ -28,8 +28,14 @@ export const createReply = async (
       return;
     }
 
-    if (typeof content !== "string" || !content.trim()) {
-      res.status(400).json({ message: "Reply content is required" });
+    if (
+      typeof content !== "string" ||
+      !content.trim() ||
+      content.trim().length > 2000
+    ) {
+      res.status(400).json({
+        message: "Reply must contain between 1 and 2000 characters",
+      });
       return;
     }
 
@@ -117,8 +123,14 @@ export const updateReply = async (
       return;
     }
 
-    if (typeof content !== "string" || !content.trim()) {
-      res.status(400).json({ message: "Reply content is required" });
+    if (
+      typeof content !== "string" ||
+      !content.trim() ||
+      content.trim().length > 2000
+    ) {
+      res.status(400).json({
+        message: "Reply must contain between 1 and 2000 characters",
+      });
       return;
     }
 
