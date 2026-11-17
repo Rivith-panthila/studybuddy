@@ -2,7 +2,6 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Discussion from "../models/Discussion";
-import Subject from "../models/Subject";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getIO } from "../config/socket";
@@ -18,42 +17,24 @@ export const createDiscussion = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { title, content, subjectId } = req.body;
+    const { title, content } = req.body;
     const userId = req.user!.id;
     const file = req.file;
 
     if (
-      !title ||
       typeof title !== "string" ||
       !title.trim() ||
-      !content ||
       typeof content !== "string" ||
-      !content.trim() ||
-      !subjectId ||
-      typeof subjectId !== "string" ||
-      !mongoose.Types.ObjectId.isValid(subjectId)
+      !content.trim()
     ) {
       res.status(400).json({
-        message: "Please provide a valid title, content and subject",
-      });
-      return;
-    }
-
-    const subject = await Subject.findOne({
-      _id: subjectId,
-      userId,
-    });
-
-    if (!subject) {
-      res.status(404).json({
-        message: "Subject not found",
+        message: "Please provide a valid title and content",
       });
       return;
     }
 
     const discussionData: Record<string, unknown> = {
       userId,
-      subjectId,
       title: title.trim(),
       content: content.trim(),
     };
@@ -69,8 +50,7 @@ export const createDiscussion = async (
     const discussion = await Discussion.create(discussionData);
 
     const populatedDiscussion = await Discussion.findById(discussion._id)
-      .populate("userId", "name profileImage")
-      .populate("subjectId", "name");
+      .populate("userId", "name profileImage");
 
     if (!populatedDiscussion) {
       res.status(500).json({
@@ -98,27 +78,8 @@ export const getDiscussions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { subjectId } = req.query;
-
-    const filter: Record<string, unknown> = {};
-
-    if (subjectId) {
-      if (
-        typeof subjectId !== "string" ||
-        !mongoose.Types.ObjectId.isValid(subjectId)
-      ) {
-        res.status(400).json({
-          message: "Invalid subject ID",
-        });
-        return;
-      }
-
-      filter.subjectId = subjectId;
-    }
-
-    const discussions = await Discussion.find(filter)
+    const discussions = await Discussion.find()
       .populate("userId", "name profileImage")
-      .populate("subjectId", "name")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ discussions });
@@ -149,10 +110,8 @@ export const updateDiscussion = async (
     }
 
     if (
-      !title ||
       typeof title !== "string" ||
       !title.trim() ||
-      !content ||
       typeof content !== "string" ||
       !content.trim()
     ) {
@@ -185,8 +144,7 @@ export const updateDiscussion = async (
     }
 
     const populatedDiscussion = await Discussion.findById(discussion._id)
-      .populate("userId", "name profileImage")
-      .populate("subjectId", "name");
+      .populate("userId", "name profileImage");
 
     if (!populatedDiscussion) {
       res.status(404).json({
@@ -263,7 +221,7 @@ export const deleteDiscussion = async (
     });
 
     res.status(200).json({
-      message: "Discussion and attachment deleted successfully",
+      message: "Discussion deleted successfully",
     });
   } catch (error) {
     console.error("Delete discussion error:", error);

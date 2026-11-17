@@ -3,7 +3,6 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IDiscussion extends Document {
   userId: mongoose.Types.ObjectId;
-  subjectId: mongoose.Types.ObjectId;
   title: string;
   content: string;
   attachment?: {
@@ -18,11 +17,6 @@ const discussionSchema = new Schema<IDiscussion>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
-    },
-    subjectId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Subject",
       required: true,
     },
     title: {
