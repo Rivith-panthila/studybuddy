@@ -12,6 +12,7 @@ import courseworkRoutes from "./routes/courseworkRoutes";
 import studyPreferenceRoutes from "./routes/studyPreferenceRoutes";
 import studyPlanRoutes from "./routes/studyPlanRoutes";
 import discussionRoutes from "./routes/discussionRoutes";
+import discussionReplyRoutes from "./routes/discussionReplyRoutes";
 
 dotenv.config();
 
@@ -31,6 +32,8 @@ app.use("/api/coursework", courseworkRoutes);
 app.use("/api/study-preferences", studyPreferenceRoutes);
 app.use("/api/study-plans", studyPlanRoutes);
 app.use("/api/discussions", discussionRoutes);
+app.use("/api/discussion-replies", discussionReplyRoutes);
+
 
 
 app.get("/", (_req, res) => {
