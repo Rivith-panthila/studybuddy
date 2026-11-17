@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Discussion from "../models/Discussion";
 import Subject from "../models/Subject";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 interface AuthRequest extends Request {
   user?: {
@@ -18,6 +20,7 @@ export const createDiscussion = async (
   try {
     const { title, content, subjectId } = req.body;
     const userId = req.user!.id;
+    const file = req.file;
 
     if (
       !title ||
@@ -27,6 +30,7 @@ export const createDiscussion = async (
       typeof content !== "string" ||
       !content.trim() ||
       !subjectId ||
+      typeof subjectId !== "string" ||
       !mongoose.Types.ObjectId.isValid(subjectId)
     ) {
       res.status(400).json({
@@ -47,12 +51,22 @@ export const createDiscussion = async (
       return;
     }
 
-    const discussion = await Discussion.create({
+    const discussionData: Record<string, unknown> = {
       userId,
       subjectId,
       title: title.trim(),
       content: content.trim(),
-    });
+    };
+
+    if (file) {
+      discussionData.attachment = {
+        fileName: file.originalname,
+        fileUrl: `/uploads/${file.filename}`,
+        fileType: file.mimetype,
+      };
+    }
+
+    const discussion = await Discussion.create(discussionData);
 
     res.status(201).json({
       message: "Discussion created successfully",
@@ -166,7 +180,7 @@ export const deleteDiscussion = async (
   res: Response
 ): Promise<void> => {
   try {
-    const discussion = await Discussion.findOneAndDelete({
+    const discussion = await Discussion.findOne({
       _id: req.params.id,
       userId: req.user!.id,
     });
@@ -178,8 +192,28 @@ export const deleteDiscussion = async (
       return;
     }
 
+    if (discussion.attachment?.fileUrl) {
+      const fileName = path.basename(discussion.attachment.fileUrl);
+      const filePath = path.join(
+        process.cwd(),
+        "src",
+        "uploads",
+        fileName
+      );
+
+      try {
+        await fs.unlink(filePath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+          throw error;
+        }
+      }
+    }
+
+    await Discussion.deleteOne({ _id: discussion._id });
+
     res.status(200).json({
-      message: "Discussion deleted successfully",
+      message: "Discussion and attachment deleted successfully",
     });
   } catch (error) {
     console.error("Delete discussion error:", error);

@@ -13,6 +13,8 @@ import studyPreferenceRoutes from "./routes/studyPreferenceRoutes";
 import studyPlanRoutes from "./routes/studyPlanRoutes";
 import discussionRoutes from "./routes/discussionRoutes";
 import discussionReplyRoutes from "./routes/discussionReplyRoutes";
+import { createServer } from "node:http";
+import { Server } from "socket.io";
 
 dotenv.config();
 
@@ -20,8 +22,26 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
 
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use("/uploads", express.static("src/uploads"));
 
 
 app.use("/api/auth", authRoutes);
@@ -55,9 +75,9 @@ const startServer = async (): Promise<void> => {
     await mongoose.connect(mongoURI);
     console.log("MongoDB connected successfully!");
 
-    app.listen(PORT, () => {
-      console.log(`StudyBuddy server running on port ${PORT}`);
-    });
+   httpServer.listen(PORT, () => {
+  console.log(`StudyBuddy server running on port ${PORT}`);
+});
   } catch (error) {
     console.error("Server startup failed:", error);
     process.exit(1);
