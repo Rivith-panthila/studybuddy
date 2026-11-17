@@ -5,13 +5,13 @@ import Discussion from "../models/Discussion";
 import Subject from "../models/Subject";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { getIO } from "../config/socket";
 
 interface AuthRequest extends Request {
   user?: {
     id: string;
   };
 }
-
 
 export const createDiscussion = async (
   req: AuthRequest,
@@ -68,9 +68,22 @@ export const createDiscussion = async (
 
     const discussion = await Discussion.create(discussionData);
 
+    const populatedDiscussion = await Discussion.findById(discussion._id)
+      .populate("userId", "name profileImage")
+      .populate("subjectId", "name");
+
+    if (!populatedDiscussion) {
+      res.status(500).json({
+        message: "Failed to retrieve created discussion",
+      });
+      return;
+    }
+
+    getIO().emit("discussion:new", populatedDiscussion);
+
     res.status(201).json({
       message: "Discussion created successfully",
-      discussion,
+      discussion: populatedDiscussion,
     });
   } catch (error) {
     console.error("Create discussion error:", error);
@@ -79,7 +92,6 @@ export const createDiscussion = async (
     });
   }
 };
-
 
 export const getDiscussions = async (
   req: AuthRequest,
@@ -118,13 +130,23 @@ export const getDiscussions = async (
   }
 };
 
-// Update Own Discussion
 export const updateDiscussion = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const discussionId = req.params.id;
     const { title, content } = req.body;
+
+    if (
+      typeof discussionId !== "string" ||
+      !mongoose.Types.ObjectId.isValid(discussionId)
+    ) {
+      res.status(400).json({
+        message: "Invalid discussion ID",
+      });
+      return;
+    }
 
     if (
       !title ||
@@ -142,7 +164,7 @@ export const updateDiscussion = async (
 
     const discussion = await Discussion.findOneAndUpdate(
       {
-        _id: req.params.id,
+        _id: discussionId,
         userId: req.user!.id,
       },
       {
@@ -162,9 +184,22 @@ export const updateDiscussion = async (
       return;
     }
 
+    const populatedDiscussion = await Discussion.findById(discussion._id)
+      .populate("userId", "name profileImage")
+      .populate("subjectId", "name");
+
+    if (!populatedDiscussion) {
+      res.status(404).json({
+        message: "Discussion not found",
+      });
+      return;
+    }
+
+    getIO().emit("discussion:updated", populatedDiscussion);
+
     res.status(200).json({
       message: "Discussion updated successfully",
-      discussion,
+      discussion: populatedDiscussion,
     });
   } catch (error) {
     console.error("Update discussion error:", error);
@@ -174,14 +209,25 @@ export const updateDiscussion = async (
   }
 };
 
-
 export const deleteDiscussion = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
+    const discussionId = req.params.id;
+
+    if (
+      typeof discussionId !== "string" ||
+      !mongoose.Types.ObjectId.isValid(discussionId)
+    ) {
+      res.status(400).json({
+        message: "Invalid discussion ID",
+      });
+      return;
+    }
+
     const discussion = await Discussion.findOne({
-      _id: req.params.id,
+      _id: discussionId,
       userId: req.user!.id,
     });
 
@@ -211,6 +257,10 @@ export const deleteDiscussion = async (
     }
 
     await Discussion.deleteOne({ _id: discussion._id });
+
+    getIO().emit("discussion:deleted", {
+      discussionId: discussion._id.toString(),
+    });
 
     res.status(200).json({
       message: "Discussion and attachment deleted successfully",

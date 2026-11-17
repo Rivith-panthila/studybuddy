@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Discussion from "../models/Discussion";
 import DiscussionReply from "../models/DiscussionReply";
+import { getIO } from "../config/socket";
 
 interface AuthRequest extends Request {
   user?: {
@@ -45,9 +46,21 @@ export const createReply = async (
       content: content.trim(),
     });
 
+    const populatedReply = await DiscussionReply.findById(reply._id)
+      .populate("userId", "name profileImage");
+
+    if (!populatedReply) {
+      res.status(500).json({ message: "Failed to retrieve created reply" });
+      return;
+    }
+
+    getIO()
+      .to(`discussion:${discussionId}`)
+      .emit("reply:new", populatedReply);
+
     res.status(201).json({
       message: "Reply created successfully",
-      reply,
+      reply: populatedReply,
     });
   } catch (error) {
     console.error("Create reply error:", error);
@@ -128,9 +141,21 @@ export const updateReply = async (
       return;
     }
 
+    const populatedReply = await DiscussionReply.findById(reply._id)
+      .populate("userId", "name profileImage");
+
+    if (!populatedReply) {
+      res.status(404).json({ message: "Reply not found" });
+      return;
+    }
+
+    getIO()
+      .to(`discussion:${reply.discussionId.toString()}`)
+      .emit("reply:updated", populatedReply);
+
     res.status(200).json({
       message: "Reply updated successfully",
-      reply,
+      reply: populatedReply,
     });
   } catch (error) {
     console.error("Update reply error:", error);
@@ -162,6 +187,13 @@ export const deleteReply = async (
       res.status(404).json({ message: "Reply not found" });
       return;
     }
+
+    getIO()
+      .to(`discussion:${reply.discussionId.toString()}`)
+      .emit("reply:deleted", {
+        replyId: reply._id.toString(),
+        discussionId: reply.discussionId.toString(),
+      });
 
     res.status(200).json({
       message: "Reply deleted successfully",
